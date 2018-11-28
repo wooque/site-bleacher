@@ -1,0 +1,31 @@
+{
+  "name": "Site Bleacher",
+  "description": "Remove automatically cookies, session, local storage and IndexedDBs",
+  "version": "1.0",
+  "permissions": [
+    "storage",
+    "tabs",
+    "cookies",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    "indexeddb_patch.js"
+  ],
+  "browser_action": {
+    "default_title": "Clean",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "manifest_version": 2
+}
