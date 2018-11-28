@@ -5,7 +5,8 @@ let shouldClean = {};
 let indexeddbs = {};
 
 const parseUrl = (url) => new URL(url);
-const getDomain = (url) => parseUrl(url).host;
+const normalizeDomain = (domain) => domain.replace("www.", "");
+const getDomain = (url) => normalizeDomain(parseUrl(url).host);
 
 const checkWhitelist = (domain) => {
     for (let rule of whitelist) {
@@ -39,6 +40,16 @@ const cleanCookies = (url) => {
     );
 };
 
+const sendCleanStorage = (tab) => {
+    chrome.tabs.sendMessage(
+        tab.id,
+        {
+            "action": "clean_storage",
+            "data": indexeddbs[tab.id] || [],
+        }
+    );
+};
+
 const clean = () => {
     chrome.tabs.query(
         {
@@ -50,13 +61,9 @@ const clean = () => {
             const url = parseUrl(tab.url);
             if (!url.protocol.startsWith("http")) return;
 
-            if (!checkWhitelist(url.host)) {
+            if (!checkWhitelist(normalizeDomain(url.host))) {
                 cleanCookies(tab.url);
-
-                chrome.tabs.sendMessage(
-                    tab.id,
-                    {"action": "clean_storage"},
-                );
+                sendCleanStorage(tab);
             }
         }
     );
@@ -88,7 +95,7 @@ const onTabClose = (tabId, removeInfo) => {
 
     delete tabs[tabId];
 
-    const oldDomain = url.host;
+    const oldDomain = normalizeDomain(url.host);
     if (oldDomain in domains) {
         domains[oldDomain]--;
         if (domains[oldDomain] === 0) {
@@ -108,7 +115,7 @@ const onTabCreate = (tab) => {
 
     tabs[tab.id] = url;
 
-    const newDomain = url.host;
+    const newDomain = normalizeDomain(url.host);
     if (newDomain in domains) {
         domains[newDomain]++;
     } else {
@@ -116,13 +123,7 @@ const onTabCreate = (tab) => {
     }
     let sc = shouldClean[newDomain] === true;
     if (sc) {
-        chrome.tabs.sendMessage(
-            tab.id,
-            {
-                "action": "clean_storage",
-                "data": indexeddbs[tab.id] || [],
-            }
-        );
+        sendCleanStorage(tab);
         delete indexeddbs[tab.id];
         delete shouldClean[newDomain];
     }
@@ -130,7 +131,7 @@ const onTabCreate = (tab) => {
 
 const onTabChange = (tabId, changeInfo, tab) => {
     const oldUrl = tabs[tabId];
-    if (oldUrl && oldUrl.host === getDomain(tab.url)) return;
+    if (oldUrl && normalizeDomain(oldUrl.host) === getDomain(tab.url)) return;
 
     onTabClose(tabId, undefined);
     onTabCreate(tab);
