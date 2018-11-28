@@ -31,6 +31,11 @@ const cleanCookies = (url) => {
         {url: url},
         (cookies) => {
             for (let cookie of cookies) {
+                let domain = cookie.domain;
+                if (domain[0] == ".") {
+                    domain = domain.slice(1);
+                }
+                if (checkWhitelist(domain)) continue;
                 chrome.cookies.remove({
                     url: url,
                     name: cookie.name,
