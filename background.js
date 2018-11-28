@@ -28,7 +28,7 @@ const loadWhitelist = () => {
 
 const cleanCookies = (url) => {
     chrome.cookies.getAll(
-        {domain: getDomain(url)},
+        {url: url},
         (cookies) => {
             for (let cookie of cookies) {
                 chrome.cookies.remove({
