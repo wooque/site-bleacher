@@ -23,9 +23,13 @@
     "indexeddb_patch.js"
   ],
   "browser_action": {
-    "default_title": "Clean",
     "default_popup": "popup.html"
   },
   "options_page": "options.html",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
   "manifest_version": 2
 }
