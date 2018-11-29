@@ -20,6 +20,30 @@ const initGlobals = () => {
             }
         }
     });
+
+    chrome.storage.local.get(["shouldClean", "indexeddbs"], (result) => {
+        shouldClean = result.shouldClean || {};
+        indexeddbs = result.indexeddbs || {};
+    });
+};
+
+const setShouldClean = (domain) => {
+    shouldClean[domain] = true;
+    chrome.storage.local.set({"shouldClean": shouldClean});
+};
+
+const deleteShouldClean = (domain) => {
+    delete shouldClean[domain];
+    delete indexeddbs[domain];
+    chrome.storage.local.set({
+        "shouldClean": shouldClean,
+        "indexeddbs": indexeddbs,
+    });
+};
+
+const updateIndexedDBs = (domain, dbs) => {
+    indexeddbs[domain] = dbs;
+    chrome.storage.local.set({"indexeddbs": indexeddbs});
 };
 
 const checkWhitelist = (domain) => {
@@ -104,7 +128,7 @@ const onMessage = (message, sender, _sendResponse) => {
         break;
 
     case "update_indexeddbs":
-        indexeddbs[getDomain(sender.tab.url)] = message.data;
+        updateIndexedDBs(getDomain(sender.tab.url), message.data);
         break;
     }
 };
@@ -112,6 +136,7 @@ const onMessage = (message, sender, _sendResponse) => {
 const onTabClose = async (tabId, _removeInfo) => {
     const url = tabs[tabId];
     if (!url) return;
+    if (!url.protocol.startsWith("http")) return;
 
     delete tabs[tabId];
 
@@ -121,7 +146,7 @@ const onTabClose = async (tabId, _removeInfo) => {
         if (domains[oldDomain] === 0) {
             delete domains[oldDomain];
             if (!checkWhitelist(oldDomain)) {
-                shouldClean[oldDomain] = true;
+                setShouldClean(oldDomain);
                 await cleanCookies(url.toString());
             }
         }
@@ -187,8 +212,7 @@ const onTabCreate = async (tab) => {
     if (shouldClean[newDomain] === true
         || (first && !checkWhitelist(newDomain))) {
         sendCleanStorage(tab);
-        delete indexeddbs[newDomain];
-        delete shouldClean[newDomain];
+        deleteShouldClean(newDomain);
     }
     await setBadge(tab);
 };
