@@ -157,4 +157,5 @@ chrome.tabs.onUpdated.addListener(onTabChange);
 chrome.tabs.onRemoved.addListener(onTabClose);
 
 loadWhitelist();
-setInterval(() => cleanCookies(), 30000);
+// TODO: enable periodic clean when its completed
+//setInterval(() => cleanCookies(), 30000);
