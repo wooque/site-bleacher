@@ -43,6 +43,7 @@
         "getDomain": true,
         "baseDomain": true,
         "byId": true,
+        "cleanRule": true,
         "saveWhitelist": true,
         "getWhitelist": true
     }

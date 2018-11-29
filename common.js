@@ -33,7 +33,6 @@ const normalizeDomain = (domain) => domain.replace("www.", "");
 // eslint-disable-next-line no-unused-vars
 const getDomain = (url) => normalizeDomain(parseUrl(url).host);
 
-// eslint-disable-next-line no-unused-vars
 const baseDomain = (domain) => {
     const parts = domain.split(".");
     return parts.slice(-2).join(".");
@@ -42,8 +41,15 @@ const baseDomain = (domain) => {
 // eslint-disable-next-line no-unused-vars
 const byId = (id) => document.getElementById(id);
 
+const cleanRule = d => d.replace(/\^|\\|\$/g, "");
+
 // eslint-disable-next-line no-unused-vars
 const saveWhitelist = (rules) => {
+    rules.sort((r1, r2) => {
+        const bd1 = baseDomain(cleanRule(r1));
+        const bd2 = baseDomain(cleanRule(r2));
+        return bd1.localeCompare(bd2);
+    });
     chrome.runtime.sendMessage({
         "action": "update_whitelist",
         "whitelist": rules,

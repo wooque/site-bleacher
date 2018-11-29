@@ -32,12 +32,12 @@ const render = async () => {
     if (!cookies) return;
     if (!whitelist) {
         const wl = await getWhitelist();
-        whitelist = wl.map(r => r.replace(/\^|\\|\$/g, ""));
+        whitelist = wl.map(r => cleanRule(r));
     }
     const domains = new Set();
 
     for (let c of cookies) {
-        let domain = cookieDomain(c);
+        let domain = normalizeDomain(cookieDomain(c));
         domains.add(domain);
     }
     const table = byId("cookies");
