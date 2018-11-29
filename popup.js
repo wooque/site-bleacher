@@ -36,17 +36,19 @@ const render = async () => {
     const table = byId("cookies");
     table.innerHTML = "";
     for (let domain of domains) {
+        const action = whitelist.includes(domain) ? "remove": "whitelist";
+
         const tr = document.createElement("tr");
 
         const dtd = document.createElement("td");
         dtd.innerText = domain;
+        dtd.className = action;
         tr.appendChild(dtd);
 
         const btd = document.createElement("td");
 
         const but = document.createElement("button");
-        const button = whitelist.includes(domain) ? "remove": "whitelist";
-        but.innerHTML = button;
+        but.innerHTML = action;
         but.onclick = () => toogleWhitelist(domain);
         btd.appendChild(but);
 

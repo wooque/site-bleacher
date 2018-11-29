@@ -1,4 +1,5 @@
 let whitelist = [];
+let whitelistDomains = [];
 let tabs = {};
 let domains = {};
 let shouldClean = {};
@@ -31,12 +32,15 @@ const checkWhitelist = (domain) => {
     return false;
 };
 
+const updateWhitelist = (wl) => {
+    whitelistDomains = wl.map(r => cleanRule(r));
+    whitelist = wl.map(r => new RegExp(r));
+};
+
 const loadWhitelist = () => {
     chrome.storage.local.get(["whitelist"], (result) => {
         if (!result.whitelist) return;
-        for (let rule of result.whitelist) {
-            whitelist.push(new RegExp(rule));
-        }
+        updateWhitelist(result.whitelist);
     });
 };
 
@@ -95,7 +99,7 @@ const onMessage = (message, sender, _sendResponse) => {
         break;
 
     case "update_whitelist":
-        whitelist = message.whitelist.map((r) => new RegExp(r));
+        updateWhitelist(message.whitelist);
         break;
 
     case "update_indexeddbs":
@@ -131,12 +135,38 @@ const setBadge = async (tab) => {
         let domain = normalizeDomain(cookieDomain(c));
         cookieDomains.add(domain);
     }
-    if (cookieDomains.size) {
-        chrome.browserAction.setBadgeText({
-            text: "" + cookieDomains.size,
-            tabId: tab.id,
-        });
+    const total = cookieDomains.size;
+    if (!total) return;
+
+    let whitelisted = 0;
+    for (let d of cookieDomains) {
+        if (whitelistDomains.includes(d)) {
+            whitelisted++;
+        }
     }
+    let badge = "";
+    let color;
+
+    if (whitelisted === total) {
+        badge += whitelisted;
+        color = "#4E9A06";
+
+    } else if (whitelisted === 0) {
+        badge += total;
+        color = "#CD0000";
+
+    } else {
+        badge = `${whitelisted}/${total}`;
+        color = "#C4A000";
+    }
+    chrome.browserAction.setBadgeText({
+        text: badge,
+        tabId: tab.id,
+    });
+    chrome.browserAction.setBadgeBackgroundColor({
+        color: color,
+        tabId: tab.id,
+    });
 };
 
 const onTabCreate = async (tab) => {
