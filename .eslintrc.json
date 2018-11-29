@@ -33,5 +33,17 @@
                 "argsIgnorePattern": "^_"
             }
         ]
+    },
+    "globals": {
+        "getCookies": true,
+        "getCurrentTab": true,
+        "cookieDomain": true,
+        "parseUrl": true,
+        "normalizeDomain": true,
+        "getDomain": true,
+        "baseDomain": true,
+        "byId": true,
+        "saveWhitelist": true,
+        "getWhitelist": true
     }
 }

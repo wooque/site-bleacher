@@ -1,0 +1,60 @@
+// eslint-disable-next-line no-unused-vars
+const getCookies = (details) => new Promise(resolve => {
+    chrome.cookies.getAll(
+        details,
+        (cookies) => resolve(cookies)
+    );
+});
+
+// eslint-disable-next-line no-unused-vars
+const getCurrentTab = () => new Promise(resolve => {
+    chrome.tabs.query(
+        {
+            active: true,
+            currentWindow: true,
+        },
+        (tabs) => resolve(tabs[0])
+    );
+});
+
+const parseUrl = (url) => new URL(url);
+
+// eslint-disable-next-line no-unused-vars
+const cookieDomain = (cookie) => {
+    let domain = cookie.domain;
+    if (domain.charAt(0) === ".") {
+        return domain.slice(1);
+    }
+    return domain;
+};
+
+const normalizeDomain = (domain) => domain.replace("www.", "");
+
+// eslint-disable-next-line no-unused-vars
+const getDomain = (url) => normalizeDomain(parseUrl(url).host);
+
+// eslint-disable-next-line no-unused-vars
+const baseDomain = (domain) => {
+    const parts = domain.split(".");
+    return parts.slice(-2).join(".");
+};
+
+// eslint-disable-next-line no-unused-vars
+const byId = (id) => document.getElementById(id);
+
+// eslint-disable-next-line no-unused-vars
+const saveWhitelist = (rules) => {
+    chrome.runtime.sendMessage({
+        "action": "update_whitelist",
+        "whitelist": rules,
+    });
+    chrome.storage.local.set({whitelist: rules});
+};
+
+// eslint-disable-next-line no-unused-vars
+const getWhitelist = () => new Promise(resolve => {
+    chrome.storage.local.get(["whitelist"], (result) => {
+        if (!result.whitelist) return resolve([]);
+        resolve(result.whitelist);
+    });
+});

@@ -4,17 +4,6 @@ let domains = {};
 let shouldClean = {};
 let indexeddbs = {};
 
-const parseUrl = (url) => new URL(url);
-
-const normalizeDomain = (domain) => domain.replace("www.", "");
-
-const getDomain = (url) => normalizeDomain(parseUrl(url).host);
-
-const baseDomain = (domain) => {
-    const parts = domain.split(".");
-    return parts.slice(-2).join(".");
-};
-
 const checkWhitelist = (domain) => {
     domain = normalizeDomain(domain);
     for (let rule of whitelist) {
@@ -34,33 +23,30 @@ const loadWhitelist = () => {
     });
 };
 
-const cleanCookies = (details, checkIgnore) => {
-    details = details || {};
+const cleanCookiesWithDetails = async (details, checkIgnore) => {
+    const cookies = await getCookies(details);
+    for (let cookie of cookies) {
+        const domain = cookieDomain(cookie);
+        if (checkWhitelist(domain)) continue;
+        if (checkIgnore && checkIgnore(domain)) continue;
 
-    chrome.cookies.getAll(
-        details,
-        (cookies) => {
-            for (let cookie of cookies) {
-                let domain = cookie.domain;
-                if (domain.charAt(0) === ".") {
-                    domain = domain.slice(1);
-                }
-                if (checkWhitelist(domain)) continue;
-                if (checkIgnore && checkIgnore(domain)) continue;
-
-                let url;
-                if (cookie.secure) {
-                    url = `https://${domain}${cookie.path}`;
-                } else {
-                    url = `http://${domain}${cookie.path}`;
-                }
-                chrome.cookies.remove({
-                    url: url,
-                    name: cookie.name,
-                });
-            }
+        let url;
+        if (cookie.secure) {
+            url = `https://${domain}${cookie.path}`;
+        } else {
+            url = `http://${domain}${cookie.path}`;
         }
-    );
+        chrome.cookies.remove({
+            url: url,
+            name: cookie.name,
+        });
+    }
+};
+
+const cleanCookies = async (url, checkIgnore) => {
+    await cleanCookiesWithDetails({url: url}, checkIgnore);
+    const bd = baseDomain(getDomain(url));
+    await cleanCookiesWithDetails({domain: bd}, checkIgnore);
 };
 
 const sendCleanStorage = (tab) => {
@@ -73,23 +59,15 @@ const sendCleanStorage = (tab) => {
     );
 };
 
-const clean = () => {
-    chrome.tabs.query(
-        {
-            active: true,
-            currentWindow: true,
-        },
-        (tabs) => {
-            const tab = tabs[0];
-            const url = parseUrl(tab.url);
-            if (!url.protocol.startsWith("http")) return;
+const clean = async () => {
+    const tab = await getCurrentTab();
+    const url = parseUrl(tab.url);
+    if (!url.protocol.startsWith("http")) return;
 
-            if (!checkWhitelist(url.host)) {
-                cleanCookies({url: tab.url});
-                sendCleanStorage(tab);
-            }
-        }
-    );
+    if (!checkWhitelist(url.host)) {
+        await cleanCookies(tab.url);
+        sendCleanStorage(tab);
+    }
 };
 
 const onMessage = (message, sender, _sendResponse) => {
@@ -109,7 +87,7 @@ const onMessage = (message, sender, _sendResponse) => {
     }
 };
 
-const onTabClose = (tabId, _removeInfo) => {
+const onTabClose = async (tabId, _removeInfo) => {
     const url = tabs[tabId];
     if (!url) return;
 
@@ -122,7 +100,7 @@ const onTabClose = (tabId, _removeInfo) => {
             delete domains[oldDomain];
             if (!checkWhitelist(oldDomain)) {
                 shouldClean[oldDomain] = true;
-                cleanCookies({url: url.toString()});
+                await cleanCookies(url.toString());
             }
         }
     }
@@ -161,7 +139,7 @@ const onTabChange = (tabId, _changeInfo, tab) => {
 const cleanCookiesCheckOpenTabs = () => {
     chrome.tabs.query({}, (tabs) => {
         const domains = tabs.map((t) => baseDomain(getDomain(t.url)));
-        cleanCookies({}, (domain) => domains.includes(baseDomain(domain)));
+        cleanCookiesWithDetails({}, (domain) => domains.includes(baseDomain(domain)));
     });
 };
 
@@ -171,4 +149,4 @@ chrome.tabs.onUpdated.addListener(onTabChange);
 chrome.tabs.onRemoved.addListener(onTabClose);
 
 loadWhitelist();
-setInterval(() => cleanCookiesCheckOpenTabs(), 5000);
+setInterval(() => cleanCookiesCheckOpenTabs(), 10000);
