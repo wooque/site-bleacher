@@ -5,8 +5,15 @@ let shouldClean = {};
 let indexeddbs = {};
 
 const parseUrl = (url) => new URL(url);
+
 const normalizeDomain = (domain) => domain.replace("www.", "");
+
 const getDomain = (url) => normalizeDomain(parseUrl(url).host);
+
+const baseDomain = (domain) => {
+    const parts = domain.split(".");
+    return parts.slice(-2).join(".");
+};
 
 const checkWhitelist = (domain) => {
     domain = normalizeDomain(domain);
@@ -27,8 +34,9 @@ const loadWhitelist = () => {
     });
 };
 
-const cleanCookies = (details) => {
+const cleanCookies = (details, checkIgnore) => {
     details = details || {};
+
     chrome.cookies.getAll(
         details,
         (cookies) => {
@@ -38,6 +46,7 @@ const cleanCookies = (details) => {
                     domain = domain.slice(1);
                 }
                 if (checkWhitelist(domain)) continue;
+                if (checkIgnore && checkIgnore(domain)) continue;
 
                 let url;
                 if (cookie.secure) {
@@ -143,10 +152,17 @@ const onTabCreate = (tab) => {
 
 const onTabChange = (tabId, _changeInfo, tab) => {
     const oldUrl = tabs[tabId];
-    if (oldUrl && normalizeDomain(oldUrl.host) === getDomain(tab.url)) return;
+    if (oldUrl && baseDomain(oldUrl.host) === baseDomain(getDomain(tab.url))) return;
 
     onTabClose(tabId, undefined);
     onTabCreate(tab);
+};
+
+const cleanCookiesCheckOpenTabs = () => {
+    chrome.tabs.query({}, (tabs) => {
+        const domains = tabs.map((t) => baseDomain(getDomain(t.url)));
+        cleanCookies({}, (domain) => domains.includes(baseDomain(domain)));
+    });
 };
 
 chrome.runtime.onMessage.addListener(onMessage);
@@ -155,5 +171,4 @@ chrome.tabs.onUpdated.addListener(onTabChange);
 chrome.tabs.onRemoved.addListener(onTabClose);
 
 loadWhitelist();
-// TODO: enable periodic clean when its completed
-//setInterval(() => cleanCookies(), 30000);
+setInterval(() => cleanCookiesCheckOpenTabs(), 5000);
