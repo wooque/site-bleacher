@@ -9,6 +9,7 @@ const normalizeDomain = (domain) => domain.replace("www.", "");
 const getDomain = (url) => normalizeDomain(parseUrl(url).host);
 
 const checkWhitelist = (domain) => {
+    domain = normalizeDomain(domain);
     for (let rule of whitelist) {
         if (rule.test(domain)) {
             return true;
@@ -26,16 +27,24 @@ const loadWhitelist = () => {
     });
 };
 
-const cleanCookies = (url) => {
+const cleanCookies = (details) => {
+    details = details || {};
     chrome.cookies.getAll(
-        {url: url},
+        details,
         (cookies) => {
             for (let cookie of cookies) {
                 let domain = cookie.domain;
-                if (domain[0] == ".") {
+                if (domain.charAt(0) === ".") {
                     domain = domain.slice(1);
                 }
                 if (checkWhitelist(domain)) continue;
+
+                let url;
+                if (cookie.secure) {
+                    url = `https://${domain}${cookie.path}`;
+                } else {
+                    url = `http://${domain}${cookie.path}`;
+                }
                 chrome.cookies.remove({
                     url: url,
                     name: cookie.name,
@@ -66,15 +75,15 @@ const clean = () => {
             const url = parseUrl(tab.url);
             if (!url.protocol.startsWith("http")) return;
 
-            if (!checkWhitelist(normalizeDomain(url.host))) {
-                cleanCookies(tab.url);
+            if (!checkWhitelist(url.host)) {
+                cleanCookies({url: tab.url});
                 sendCleanStorage(tab);
             }
         }
     );
 };
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+const onMessage = (message, sender, sendResponse) => {
 
     switch(message.action) {
         case "clean":
@@ -92,7 +101,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             indexeddbs[sender.tab.id] = message.data;
             break;
     }
-});
+};
 
 const onTabClose = (tabId, removeInfo) => {
     const url = tabs[tabId];
@@ -107,7 +116,7 @@ const onTabClose = (tabId, removeInfo) => {
             delete domains[oldDomain];
             if (!checkWhitelist(oldDomain)) {
                 shouldClean[oldDomain] = true;
-                cleanCookies(url.toString());
+                cleanCookies({url: url.toString()});
             }
         }
     }
@@ -142,8 +151,10 @@ const onTabChange = (tabId, changeInfo, tab) => {
     onTabCreate(tab);
 }
 
+chrome.runtime.onMessage.addListener(onMessage);
 chrome.tabs.onCreated.addListener(onTabCreate);
 chrome.tabs.onUpdated.addListener(onTabChange);
 chrome.tabs.onRemoved.addListener(onTabClose);
 
 loadWhitelist();
+setInterval(() => cleanCookies(), 30000);
