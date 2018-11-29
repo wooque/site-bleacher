@@ -127,7 +127,6 @@ const onTabCreate = (tab) => {
     const url = parseUrl(tab.url);
     if (!url.protocol.startsWith("http")) return;
 
-    const first = !tabs[tab.id];
     tabs[tab.id] = url;
 
     const newDomain = normalizeDomain(url.host);
@@ -136,6 +135,7 @@ const onTabCreate = (tab) => {
     } else {
         domains[newDomain] = 1;
     }
+    const first = domains[newDomain] === 1;
     if (shouldClean[newDomain] === true
         || (first && !checkWhitelist(newDomain))) {
         sendCleanStorage(tab);
