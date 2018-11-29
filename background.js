@@ -71,11 +71,12 @@ const cleanCookies = async (url, checkIgnore) => {
 };
 
 const sendCleanStorage = (tab) => {
+    const domain = getDomain(tab.url);
     chrome.tabs.sendMessage(
         tab.id,
         {
             "action": "clean_storage",
-            "data": indexeddbs[tab.id] || [],
+            "data": indexeddbs[domain] || [],
         }
     );
 };
@@ -103,7 +104,7 @@ const onMessage = (message, sender, _sendResponse) => {
         break;
 
     case "update_indexeddbs":
-        indexeddbs[sender.tab.id] = message.data;
+        indexeddbs[getDomain(sender.tab.url)] = message.data;
         break;
     }
 };
@@ -186,7 +187,7 @@ const onTabCreate = async (tab) => {
     if (shouldClean[newDomain] === true
         || (first && !checkWhitelist(newDomain))) {
         sendCleanStorage(tab);
-        delete indexeddbs[tab.id];
+        delete indexeddbs[newDomain];
         delete shouldClean[newDomain];
     }
     await setBadge(tab);
