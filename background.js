@@ -124,9 +124,10 @@ const onTabClose = (tabId, removeInfo) => {
 
 const onTabCreate = (tab) => {
     if (!tab.url) return;
-    const  url = parseUrl(tab.url);
+    const url = parseUrl(tab.url);
     if (!url.protocol.startsWith("http")) return;
 
+    const first = !tabs[tab.id];
     tabs[tab.id] = url;
 
     const newDomain = normalizeDomain(url.host);
@@ -135,8 +136,8 @@ const onTabCreate = (tab) => {
     } else {
         domains[newDomain] = 1;
     }
-    let sc = shouldClean[newDomain] === true;
-    if (sc) {
+    if (shouldClean[newDomain] === true
+        || (first && !checkWhitelist(newDomain))) {
         sendCleanStorage(tab);
         delete indexeddbs[tab.id];
         delete shouldClean[newDomain];
