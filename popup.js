@@ -22,7 +22,7 @@ const toogleWhitelist = (domain) => {
 const render = async () => {
     const tab = await getCurrentTab();
     const cookies = await getCookiesForUrl(tab.url);
-    if (!cookies) return;
+    if (!cookies.length) return;
     if (!whitelist) {
         const wl = await getWhitelist();
         whitelist = wl.map(r => cleanRule(r));
@@ -42,7 +42,8 @@ const render = async () => {
 
         const dtd = document.createElement("td");
         dtd.innerText = domain;
-        dtd.className = action;
+        dtd.classList.add("domain")
+        dtd.classList.add(action);
         tr.appendChild(dtd);
 
         const btd = document.createElement("td");
@@ -55,6 +56,7 @@ const render = async () => {
         tr.appendChild(btd);
         table.appendChild(tr);
     }
+    byId("clean").style.marginTop = "5px";
 };
 
 render();

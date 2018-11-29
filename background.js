@@ -129,7 +129,7 @@ const onTabClose = async (tabId, _removeInfo) => {
 
 const setBadge = async (tab) => {
     const cookies = await getCookiesForUrl(tab.url);
-    if (!cookies) return;
+    if (!cookies.length) return;
     const cookieDomains = new Set();
     for (let c of cookies) {
         let domain = normalizeDomain(cookieDomain(c));
