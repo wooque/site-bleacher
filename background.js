@@ -4,6 +4,23 @@ let domains = {};
 let shouldClean = {};
 let indexeddbs = {};
 
+const initGlobals = () => {
+    chrome.tabs.query({}, (ts) => {
+        for(let tab of ts) {
+            const url = parseUrl(tab.url)
+
+            tabs[tab.id] = url;
+
+            const nd = normalizeDomain(url.host);
+            if (nd in domains) {
+                domains[nd]++;
+            } else {
+                domains[nd] = 1;
+            }
+        }
+    });
+};
+
 const checkWhitelist = (domain) => {
     domain = normalizeDomain(domain);
     for (let rule of whitelist) {
@@ -106,7 +123,23 @@ const onTabClose = async (tabId, _removeInfo) => {
     }
 };
 
-const onTabCreate = (tab) => {
+const setBadge = async (tab) => {
+    const cookies = await getCookiesForUrl(tab.url);
+    if (!cookies) return;
+    const cookieDomains = new Set();
+    for (let c of cookies) {
+        let domain = normalizeDomain(cookieDomain(c));
+        cookieDomains.add(domain);
+    }
+    if (cookieDomains.size) {
+        chrome.browserAction.setBadgeText({
+            text: "" + cookieDomains.size,
+            tabId: tab.id,
+        });
+    }
+};
+
+const onTabCreate = async (tab) => {
     if (!tab.url) return;
     const url = parseUrl(tab.url);
     if (!url.protocol.startsWith("http")) return;
@@ -126,20 +159,29 @@ const onTabCreate = (tab) => {
         delete indexeddbs[tab.id];
         delete shouldClean[newDomain];
     }
+    await setBadge(tab);
 };
 
-const onTabChange = (tabId, _changeInfo, tab) => {
+const onTabChange = async (tabId, _changeInfo, tab) => {
     const oldUrl = tabs[tabId];
-    if (oldUrl && baseDomain(oldUrl.host) === baseDomain(getDomain(tab.url))) return;
-
-    onTabClose(tabId, undefined);
-    onTabCreate(tab);
+    if (oldUrl && baseDomain(oldUrl.host) === baseDomain(getDomain(tab.url))) {
+        await setBadge(tab);
+        return;
+    }
+    await onTabClose(tabId, undefined);
+    await onTabCreate(tab);
 };
+
+const onTabActivated = async (activeInfo) => {
+    const url = tabs[activeInfo.tabId];
+    if (!url) return;
+    await setBadge({url: url.toString(), id: activeInfo.tabId});
+}
 
 const cleanCookiesCheckOpenTabs = () => {
-    chrome.tabs.query({}, (tabs) => {
-        const domains = tabs.map((t) => baseDomain(getDomain(t.url)));
-        cleanCookiesWithDetails({}, (domain) => domains.includes(baseDomain(domain)));
+    chrome.tabs.query({}, (ts) => {
+        const ds = ts.map((t) => baseDomain(getDomain(t.url)));
+        cleanCookiesWithDetails({}, (domain) => ds.includes(baseDomain(domain)));
     });
 };
 
@@ -147,6 +189,8 @@ chrome.runtime.onMessage.addListener(onMessage);
 chrome.tabs.onCreated.addListener(onTabCreate);
 chrome.tabs.onUpdated.addListener(onTabChange);
 chrome.tabs.onRemoved.addListener(onTabClose);
+chrome.tabs.onActivated.addListener(onTabActivated);
 
+initGlobals();
 loadWhitelist();
 setInterval(() => cleanCookiesCheckOpenTabs(), 10000);

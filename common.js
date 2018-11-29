@@ -39,6 +39,14 @@ const baseDomain = (domain) => {
 };
 
 // eslint-disable-next-line no-unused-vars
+const getCookiesForUrl = async (url) => {
+    const cookies = await getCookies({url: url});
+    const base = baseDomain(getDomain(url));
+    const cookiesBase = await getCookies({domain: base});
+    return cookies.concat(cookiesBase);
+};
+
+// eslint-disable-next-line no-unused-vars
 const byId = (id) => document.getElementById(id);
 
 const cleanRule = d => d.replace(/\^|\\|\$/g, "");

@@ -4,14 +4,6 @@ byId("clean").onclick = () => {
     chrome.runtime.sendMessage({"action": "clean"});
 };
 
-const getCookiesForActiveTab = async () => {
-    const tab = await getCurrentTab();
-    const cookies = await getCookies({url: tab.url});
-    const base = baseDomain(getDomain(tab.url));
-    const cookiesBase = await getCookies({domain: base});
-    return cookies.concat(cookiesBase);
-};
-
 const toogleWhitelist = (domain) => {
     if (whitelist.includes(domain)) {
         whitelist = whitelist.filter(e => e != domain);
@@ -28,7 +20,8 @@ const toogleWhitelist = (domain) => {
 };
 
 const render = async () => {
-    const cookies = await getCookiesForActiveTab();
+    const tab = await getCurrentTab();
+    const cookies = await getCookiesForUrl(tab.url);
     if (!cookies) return;
     if (!whitelist) {
         const wl = await getWhitelist();
