@@ -10,6 +10,6 @@ function newIndexedDBOpen(arg1) {
     idbs.push(arg1);
     html.dataset.sbIndexedDbs = idbs.join(",");
     return oldIndexedDBOpen.apply(this, [arg1]);
-};
+}
 newIndexedDBOpen.bind(window.indexedDB);
 window.indexedDB.open = newIndexedDBOpen;

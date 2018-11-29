@@ -83,27 +83,24 @@ const clean = () => {
     );
 };
 
-const onMessage = (message, sender, sendResponse) => {
+const onMessage = (message, sender, _sendResponse) => {
 
     switch(message.action) {
-        case "clean":
-            clean();
-            break;
+    case "clean":
+        clean();
+        break;
 
-        case "update_whitelist":
-            newWhitelist = [];
-            for (let rule of message.whitelist) {
-                newWhitelist.push(new RegExp(rule));
-            }
-            whitelist = newWhitelist;
-            break;
-        case "update_indexeddbs":
-            indexeddbs[sender.tab.id] = message.data;
-            break;
+    case "update_whitelist":
+        whitelist = message.whitelist.map((r) => new RegExp(r));
+        break;
+
+    case "update_indexeddbs":
+        indexeddbs[sender.tab.id] = message.data;
+        break;
     }
 };
 
-const onTabClose = (tabId, removeInfo) => {
+const onTabClose = (tabId, _removeInfo) => {
     const url = tabs[tabId];
     if (!url) return;
 
@@ -120,7 +117,7 @@ const onTabClose = (tabId, removeInfo) => {
             }
         }
     }
-}
+};
 
 const onTabCreate = (tab) => {
     if (!tab.url) return;
@@ -142,15 +139,15 @@ const onTabCreate = (tab) => {
         delete indexeddbs[tab.id];
         delete shouldClean[newDomain];
     }
-}
+};
 
-const onTabChange = (tabId, changeInfo, tab) => {
+const onTabChange = (tabId, _changeInfo, tab) => {
     const oldUrl = tabs[tabId];
     if (oldUrl && normalizeDomain(oldUrl.host) === getDomain(tab.url)) return;
 
     onTabClose(tabId, undefined);
     onTabCreate(tab);
-}
+};
 
 chrome.runtime.onMessage.addListener(onMessage);
 chrome.tabs.onCreated.addListener(onTabCreate);
