@@ -1,6 +1,6 @@
 {
   "name": "Site Bleacher",
-  "description": "Remove automatically cookies, session, local storage and IndexedDBs",
+  "description": "Remove automatically cookies, local storage and IndexedDBs",
   "version": "1.0",
   "permissions": [
     "storage",

@@ -12,7 +12,6 @@ chrome.runtime.onMessage.addListener((message) => {
 
     switch(message.action) {
     case "clean_storage":
-        sessionStorage.clear();
         localStorage.clear();
         for (let db of message.data) {
             window.indexedDB.deleteDatabase(db);
