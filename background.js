@@ -125,6 +125,7 @@ const onMessage = (message, sender, _sendResponse) => {
 
     case "update_whitelist":
         updateWhitelist(message.whitelist);
+        getCurrentTab().then(setBadge);
         break;
 
     case "update_indexeddbs":
