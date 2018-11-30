@@ -7,8 +7,10 @@ function newIndexedDBOpen(arg1) {
     } else {
         idbs = [];
     }
-    idbs.push(arg1);
-    html.dataset.sbIndexedDbs = idbs.join(",");
+    if (!idbs.includes(arg1)) {
+        idbs.push(arg1);
+        html.dataset.sbIndexedDbs = idbs.join(",");
+    }
     return oldIndexedDBOpen.apply(this, [arg1]);
 }
 newIndexedDBOpen.bind(window.indexedDB);

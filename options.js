@@ -1,5 +1,5 @@
 const render = async () => {
-    const whitelist = await getWhitelist()
+    const whitelist = await getWhitelist();
     byId("whitelist").value = whitelist.join("\n");
 };
 

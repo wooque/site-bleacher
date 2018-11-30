@@ -39,6 +39,9 @@ const baseDomain = (domain) => {
 };
 
 // eslint-disable-next-line no-unused-vars
+const isWebPage = (url) => url.protocol.startsWith("http");
+
+// eslint-disable-next-line no-unused-vars
 const getCookiesForUrl = async (url) => {
     const cookies = await getCookies({url: url});
     const base = baseDomain(getDomain(url));

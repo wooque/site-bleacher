@@ -8,7 +8,8 @@ let indexeddbs = {};
 const initGlobals = () => {
     chrome.tabs.query({}, (ts) => {
         for(let tab of ts) {
-            const url = parseUrl(tab.url)
+            const url = parseUrl(tab.url);
+            if (!isWebPage(url)) return;
 
             tabs[tab.id] = url;
 
@@ -108,7 +109,7 @@ const sendCleanStorage = (tab) => {
 const clean = async () => {
     const tab = await getCurrentTab();
     const url = parseUrl(tab.url);
-    if (!url.protocol.startsWith("http")) return;
+    if (!isWebPage(url)) return;
 
     if (!checkWhitelist(url.host)) {
         await cleanCookies(tab.url);
@@ -129,15 +130,19 @@ const onMessage = (message, sender, _sendResponse) => {
         break;
 
     case "update_indexeddbs":
-        updateIndexedDBs(getDomain(sender.tab.url), message.data);
+        {
+            const domain = getDomain(sender.tab.url);
+            if (!checkWhitelist(domain)) {
+                updateIndexedDBs(domain, message.data);
+            }
+        }
         break;
     }
 };
 
 const onTabClose = async (tabId, _removeInfo) => {
     const url = tabs[tabId];
-    if (!url) return;
-    if (!url.protocol.startsWith("http")) return;
+    if (!url || !isWebPage(url)) return;
 
     delete tabs[tabId];
 
@@ -199,7 +204,7 @@ const setBadge = async (tab) => {
 const onTabCreate = async (tab) => {
     if (!tab.url) return;
     const url = parseUrl(tab.url);
-    if (!url.protocol.startsWith("http")) return;
+    if (!isWebPage(url)) return;
 
     tabs[tab.id] = url;
 
@@ -232,7 +237,7 @@ const onTabActivated = async (activeInfo) => {
     const url = tabs[activeInfo.tabId];
     if (!url) return;
     await setBadge({url: url.toString(), id: activeInfo.tabId});
-}
+};
 
 const cleanCookiesCheckOpenTabs = () => {
     chrome.tabs.query({}, (ts) => {

@@ -42,7 +42,7 @@ const render = async () => {
 
         const dtd = document.createElement("td");
         dtd.innerText = domain;
-        dtd.classList.add("domain")
+        dtd.classList.add("domain");
         dtd.classList.add(action);
         tr.appendChild(dtd);
 

@@ -42,6 +42,7 @@
         "normalizeDomain": true,
         "getDomain": true,
         "baseDomain": true,
+        "isWebPage": true,
         "getCookiesForUrl": true,
         "byId": true,
         "cleanRule": true,
