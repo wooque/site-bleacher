@@ -1,4 +1,4 @@
-let whitelist = [];
+let whitelist = {};
 let whitelistDomains = new Set();
 let tabs = {};
 let domains = {};
@@ -40,7 +40,9 @@ const updateIndexedDBs = (domain, dbs) => {
 
 const checkWhitelist = (domain) => {
     domain = normalizeDomain(domain);
-    for (let rule of whitelist) {
+    const bd = baseDomain(domain);
+    const rules = whitelist[bd] || [];
+    for (let rule of rules) {
         if (rule.test(domain)) {
             return true;
         }
@@ -50,7 +52,15 @@ const checkWhitelist = (domain) => {
 
 const updateWhitelist = (wl) => {
     whitelistDomains = new Set(wl.map(r => cleanRule(r)));
-    whitelist = wl.map(r => new RegExp(r));
+    const newWhitelist = {};
+    for(let r of wl) {
+        const bd = baseDomain(cleanRule(r));
+        if (!(bd in newWhitelist)) {
+            newWhitelist[bd] = [];
+        }
+        newWhitelist[bd].push(new RegExp(r));
+    }
+    whitelist = newWhitelist;
 };
 
 const loadWhitelist = () => {
@@ -241,4 +251,4 @@ chrome.tabs.onActivated.addListener(onTabActivated);
 
 initGlobals();
 loadWhitelist();
-setInterval(() => cleanCookiesCheckOpenTabs(), 10000);
+//setInterval(() => cleanCookiesCheckOpenTabs(), 15000);
