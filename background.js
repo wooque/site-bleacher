@@ -144,6 +144,10 @@ const onMessage = (message, sender, _sendResponse) => {
             }
         }
         break;
+
+    case "update_badge":
+        getCurrentTab().then(setBadge);
+        break;
     }
 };
 
@@ -258,3 +262,6 @@ chrome.tabs.onActivated.addListener(onTabActivated);
 initGlobals();
 loadWhitelist();
 setInterval(() => cleanCookiesCheckOpenTabs(), 15000);
+setInterval(() => {
+    getCurrentTab().then(setBadge);
+}, 15000);

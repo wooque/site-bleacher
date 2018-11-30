@@ -66,3 +66,4 @@ const render = async () => {
 };
 
 render();
+chrome.runtime.sendMessage({"action": "update_badge"});
