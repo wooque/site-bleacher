@@ -72,9 +72,15 @@ const loadWhitelist = () => {
 
 const cleanCookiesWithDetails = async (details, checkIgnore) => {
     const cookies = await getCookies(details);
+    const whitelistCheckCache = {};
     for (let cookie of cookies) {
-        const domain = cookieDomain(cookie);
-        if (checkWhitelist(domain)) continue;
+        const domain = normalizeDomain(cookieDomain(cookie));
+        let isWhitelisted = whitelistCheckCache[domain];
+        if (isWhitelisted === undefined) {
+            isWhitelisted = checkWhitelist(domain);
+            whitelistCheckCache[domain] = isWhitelisted;
+        }
+        if (isWhitelisted) continue;
         if (checkIgnore && checkIgnore(domain)) continue;
 
         let url;
@@ -251,4 +257,4 @@ chrome.tabs.onActivated.addListener(onTabActivated);
 
 initGlobals();
 loadWhitelist();
-//setInterval(() => cleanCookiesCheckOpenTabs(), 15000);
+setInterval(() => cleanCookiesCheckOpenTabs(), 15000);
