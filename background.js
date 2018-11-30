@@ -1,8 +1,7 @@
 let whitelist = [];
-let whitelistDomains = [];
+let whitelistDomains = new Set();
 let tabs = {};
 let domains = {};
-let shouldClean = {};
 let indexeddbs = {};
 
 const initGlobals = () => {
@@ -22,22 +21,14 @@ const initGlobals = () => {
         }
     });
 
-    chrome.storage.local.get(["shouldClean", "indexeddbs"], (result) => {
-        shouldClean = result.shouldClean || {};
+    chrome.storage.local.get(["indexeddbs"], (result) => {
         indexeddbs = result.indexeddbs || {};
     });
 };
 
-const setShouldClean = (domain) => {
-    shouldClean[domain] = true;
-    chrome.storage.local.set({"shouldClean": shouldClean});
-};
-
-const deleteShouldClean = (domain) => {
-    delete shouldClean[domain];
+const deleteIndexedDBs = (domain) => {
     delete indexeddbs[domain];
     chrome.storage.local.set({
-        "shouldClean": shouldClean,
         "indexeddbs": indexeddbs,
     });
 };
@@ -58,7 +49,7 @@ const checkWhitelist = (domain) => {
 };
 
 const updateWhitelist = (wl) => {
-    whitelistDomains = wl.map(r => cleanRule(r));
+    whitelistDomains = new Set(wl.map(r => cleanRule(r)));
     whitelist = wl.map(r => new RegExp(r));
 };
 
@@ -151,10 +142,7 @@ const onTabClose = async (tabId, _removeInfo) => {
         domains[oldDomain]--;
         if (domains[oldDomain] === 0) {
             delete domains[oldDomain];
-            if (!checkWhitelist(oldDomain)) {
-                setShouldClean(oldDomain);
-                await cleanCookies(url.toString());
-            }
+            await cleanCookies(url.toString());
         }
     }
 };
@@ -172,7 +160,7 @@ const setBadge = async (tab) => {
 
     let whitelisted = 0;
     for (let d of cookieDomains) {
-        if (whitelistDomains.includes(d)) {
+        if (whitelistDomains.has(d)) {
             whitelisted++;
         }
     }
@@ -215,10 +203,9 @@ const onTabCreate = async (tab) => {
         domains[newDomain] = 1;
     }
     const first = domains[newDomain] === 1;
-    if (shouldClean[newDomain] === true
-        || (first && !checkWhitelist(newDomain))) {
+    if (first && !checkWhitelist(newDomain)) {
         sendCleanStorage(tab);
-        deleteShouldClean(newDomain);
+        deleteIndexedDBs(newDomain);
     }
     await setBadge(tab);
 };

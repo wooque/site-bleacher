@@ -20,20 +20,18 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 });
 
-let lastIndexedDbs = [];
+const indexeddbs = [];
 
-setInterval(() => {
-    const html = document.getElementsByTagName("html")[0];
-    const idbs = html.dataset.sbIndexedDbs;
-    if (!idbs) return;
+document.addEventListener("new_indexdb", (event) => {
+    const db = event.detail;
+    if (indexeddbs.includes(db)) return;
 
-    const indexedDbs = idbs.split(",");
-    if (indexedDbs == lastIndexedDbs) return;
+    indexeddbs.push(db);
 
     chrome.runtime.sendMessage(
         {
             "action": "update_indexeddbs",
-            "data": indexedDbs,
+            "data": indexeddbs,
         }
     );
-}, 2000);
+});
