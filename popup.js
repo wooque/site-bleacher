@@ -49,7 +49,7 @@ const render = async () => {
         const btd = document.createElement("td");
 
         const but = document.createElement("button");
-        but.innerHTML = action;
+        but.textContent = action;
         but.onclick = () => toogleWhitelist(domain);
         btd.appendChild(but);
 
