@@ -4,6 +4,10 @@ byId("clean").onclick = () => {
     chrome.runtime.sendMessage({"action": "clean"});
 };
 
+byId("settings").onclick = () => {
+    window.open("options.html", "_blank");
+};
+
 const toogleWhitelist = (domain) => {
     if (whitelist.includes(domain)) {
         whitelist = whitelist.filter(e => e != domain);
@@ -47,16 +51,18 @@ const render = async () => {
         tr.appendChild(dtd);
 
         const btd = document.createElement("td");
+        btd.className = "actionTd";
 
         const but = document.createElement("button");
         but.textContent = action;
         but.onclick = () => toogleWhitelist(domain);
+        but.className = "action";
         btd.appendChild(but);
 
         tr.appendChild(btd);
         table.appendChild(tr);
     }
-    byId("clean").style.marginTop = "5px";
+    byId("settings").style.marginTop = "5px";
 };
 
 render();
