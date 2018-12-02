@@ -115,6 +115,7 @@ const sendCleanStorage = (tab) => {
 
 const clean = async () => {
     const tab = await getCurrentTab();
+    if (!tab) return;
     const url = parseUrl(tab.url);
     if (!isWebPage(url)) return;
 
@@ -168,6 +169,7 @@ const onTabClose = async (tabId, _removeInfo) => {
 };
 
 const setBadge = async (tab) => {
+    if (!tab) return;
     const cookies = await getCookiesForUrl(tab.url);
     if (!cookies.length) return;
     const cookieDomains = new Set();

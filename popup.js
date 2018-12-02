@@ -25,6 +25,7 @@ const toogleWhitelist = (domain) => {
 
 const render = async () => {
     const tab = await getCurrentTab();
+    if (!tab) return;
     const cookies = await getCookiesForUrl(tab.url);
     if (!cookies.length) return;
     if (!whitelist) {
