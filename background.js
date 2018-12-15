@@ -74,7 +74,8 @@ const cleanCookiesWithDetails = async (details, checkIgnore) => {
     const cookies = await getCookies(details);
     const whitelistCheckCache = {};
     for (let cookie of cookies) {
-        const domain = normalizeDomain(cookieDomain(cookie));
+        const fullDomain = cookieDomain(cookie);
+        const domain = normalizeDomain(fullDomain);
         let isWhitelisted = whitelistCheckCache[domain];
         if (isWhitelisted === undefined) {
             isWhitelisted = checkWhitelist(domain);
@@ -85,9 +86,9 @@ const cleanCookiesWithDetails = async (details, checkIgnore) => {
 
         let url;
         if (cookie.secure) {
-            url = `https://${domain}${cookie.path}`;
+            url = `https://${fullDomain}${cookie.path}`;
         } else {
-            url = `http://${domain}${cookie.path}`;
+            url = `http://${fullDomain}${cookie.path}`;
         }
         chrome.cookies.remove({
             url: url,
