@@ -34,6 +34,7 @@ const normalizeDomain = (domain) => domain.replace("www.", "");
 const getDomain = (url) => normalizeDomain(parseUrl(url).host);
 
 const baseDomain = (domain) => {
+    domain = domain.split(":")[0];
     const parts = domain.split(".");
     return parts.slice(-2).join(".");
 };

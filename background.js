@@ -251,8 +251,8 @@ const onTabActivated = async (activeInfo) => {
 
 const cleanCookiesCheckOpenTabs = () => {
     chrome.tabs.query({}, (ts) => {
-        const ds = ts.map((t) => baseDomain(getDomain(t.url)));
-        cleanCookiesWithDetails({}, (domain) => ds.includes(baseDomain(domain)));
+        const ds = new Set(ts.map((t) => baseDomain(getDomain(t.url))));
+        cleanCookiesWithDetails({}, (domain) => ds.has(baseDomain(domain)));
     });
 };
 
