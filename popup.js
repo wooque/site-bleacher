@@ -14,11 +14,7 @@ const toogleWhitelist = (domain) => {
     } else {
         whitelist.push(domain);
     }
-    const rules = [];
-    for (let r of whitelist) {
-        const rreg = r.replace(".", "\\.");
-        rules.push(`^${rreg}$`);
-    }
+    const rules = whitelist.map(domainToRule);
     saveWhitelist(rules);
     render();
 };

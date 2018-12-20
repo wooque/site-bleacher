@@ -46,6 +46,7 @@
         "getCookiesForUrl": true,
         "byId": true,
         "cleanRule": true,
+        "domainToRule": true,
         "saveWhitelist": true,
         "getWhitelist": true
     }

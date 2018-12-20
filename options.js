@@ -1,13 +1,15 @@
 const render = async () => {
     const whitelist = await getWhitelist();
-    byId("whitelist").value = whitelist.join("\n");
+    const domains = whitelist.map(cleanRule);
+    byId("whitelist").value = domains.join("\n");
 };
 
 render();
 
 byId("saveWhitelist").onclick = () => {
     const whitelistStr = byId("whitelist").value;
-    const rules = whitelistStr.trim().split(/\r?\n/g);
+    const domains = whitelistStr.trim().split(/\r?\n/g);
+    const rules = domains.map(domainToRule);
     saveWhitelist(rules);
     render();
 };

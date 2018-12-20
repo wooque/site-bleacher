@@ -54,6 +54,8 @@ const getCookiesForUrl = async (url) => {
 const byId = (id) => document.getElementById(id);
 
 const cleanRule = d => d.replace(/\^|\\|\$/g, "");
+// eslint-disable-next-line no-unused-vars
+const domainToRule = d => "^" + d.replace(".", "\\.") + "$";
 
 // eslint-disable-next-line no-unused-vars
 const saveWhitelist = (rules) => {
