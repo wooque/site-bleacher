@@ -217,9 +217,13 @@ const onTabCreate = async (tab) => {
     const url = parseUrl(tab.url);
     if (!isWebPage(url)) return;
 
+    const newDomain = normalizeDomain(url.host);
+    if (tab.id in tabs) {
+        const oldDomain = normalizeDomain(tabs[tab.id].host);
+        if (oldDomain === newDomain) return;
+    }
     tabs[tab.id] = url;
 
-    const newDomain = normalizeDomain(url.host);
     if (newDomain in domains) {
         domains[newDomain]++;
     } else {
