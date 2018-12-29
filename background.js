@@ -212,6 +212,13 @@ const setBadge = async (tab) => {
     });
 };
 
+const cleanBadge = (tabId) => {
+    chrome.browserAction.setBadgeText({
+        text: "",
+        tabId: tabId,
+    });
+};
+
 const onTabCreate = async (tab) => {
     if (!tab.url) return;
     const url = parseUrl(tab.url);
@@ -245,6 +252,9 @@ const onTabChange = async (tabId, _changeInfo, tab) => {
     }
     await onTabClose(tabId, undefined);
     await onTabCreate(tab);
+    if (!isWebPage(tab.url)) {
+        cleanBadge(tab.id);
+    }
 };
 
 const onTabActivated = async (activeInfo) => {

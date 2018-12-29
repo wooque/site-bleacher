@@ -40,7 +40,13 @@ const baseDomain = (domain) => {
 };
 
 // eslint-disable-next-line no-unused-vars
-const isWebPage = (url) => url.protocol.startsWith("http");
+const isWebPage = (url) => {
+    if (url.protocol !== undefined) {
+        return url.protocol.startsWith("http");
+    } else {
+        return url.startsWith("http");
+    }
+};
 
 // eslint-disable-next-line no-unused-vars
 const getCookiesForUrl = async (url) => {
