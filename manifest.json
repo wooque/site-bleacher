@@ -41,5 +41,10 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "site-bleacher@vukmirovic.org"
+    }
+  },
   "manifest_version": 2
 }
