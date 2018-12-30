@@ -22,6 +22,8 @@ const toogleWhitelist = (domain) => {
 const render = async () => {
     const tab = await getCurrentTab();
     if (!tab) return;
+    if (tab.cookieStoreId.includes("private")) return;
+
     const cookies = await getCookiesForUrl(tab.url);
     if (!cookies.length) return;
     if (!whitelist) {
@@ -60,6 +62,7 @@ const render = async () => {
         table.appendChild(tr);
     }
     byId("settings").style.marginTop = "5px";
+    byId("clean").style.display = "block";
 };
 
 render();
