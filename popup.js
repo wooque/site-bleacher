@@ -21,11 +21,11 @@ const toogleWhitelist = (domain) => {
 
 const render = async () => {
     const tab = await getCurrentTab();
-    if (!tab) return;
+    if (!tab || !isWebPage(tab.url)) return;
     if (tab.cookieStoreId.includes("private")) return;
 
     const cookies = await getCookiesForUrl(tab.url);
-    if (!cookies.length) return;
+
     if (!whitelist) {
         const wl = await getWhitelist();
         whitelist = wl.map(r => cleanRule(r));
@@ -35,6 +35,10 @@ const render = async () => {
     for (let c of cookies) {
         let domain = normalizeDomain(cookieDomain(c));
         domains.add(domain);
+    }
+    const tabDomain = getDomain(tab.url);
+    if (!domains.has(tabDomain)) {
+        domains.add(tabDomain);
     }
     const table = byId("cookies");
     table.innerHTML = "";

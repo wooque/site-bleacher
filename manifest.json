@@ -1,7 +1,7 @@
 {
   "name": "Site Bleacher",
   "description": "Remove automatically cookies, local storage and IndexedDBs",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "permissions": [
     "storage",
     "tabs",

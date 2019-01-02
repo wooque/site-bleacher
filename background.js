@@ -172,14 +172,17 @@ const onTabClose = async (tabId, _removeInfo) => {
 const setBadge = async (tab) => {
     if (!tab) return;
     const cookies = await getCookiesForUrl(tab.url);
-    if (!cookies.length) return;
+
     const cookieDomains = new Set();
     for (let c of cookies) {
         let domain = normalizeDomain(cookieDomain(c));
         cookieDomains.add(domain);
     }
+    const tabDomain = getDomain(tab.url);
+    if (!cookieDomains.has(tabDomain)) {
+        cookieDomains.add(tabDomain);
+    }
     const total = cookieDomains.size;
-    if (!total) return;
 
     let whitelisted = 0;
     for (let d of cookieDomains) {
