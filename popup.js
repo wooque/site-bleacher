@@ -6,6 +6,7 @@ byId("clean").onclick = () => {
 
 byId("settings").onclick = () => {
     window.open("options.html", "_blank");
+    window.close();
 };
 
 const toogleWhitelist = (domain) => {
