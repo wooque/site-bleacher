@@ -171,7 +171,7 @@ const onTabClose = async (tabId, _removeInfo) => {
 
 const setBadge = async (tab) => {
     if (!tab || !isWebPage(tab.url)) return;
-    if (tab.cookieStoreId.includes("private")) return;
+    if (tab.incognito) return;
 
     const cookies = await getCookiesForUrl(tab.url);
 

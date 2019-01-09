@@ -23,7 +23,7 @@ const toogleWhitelist = (domain) => {
 const render = async () => {
     const tab = await getCurrentTab();
     if (!tab || !isWebPage(tab.url)) return;
-    if (tab.cookieStoreId.includes("private")) return;
+    if (tab.incognito) return;
 
     const cookies = await getCookiesForUrl(tab.url);
 
