@@ -262,10 +262,8 @@ const onTabChange = async (tabId, _changeInfo, tab) => {
     }
 };
 
-const onTabActivated = async (activeInfo) => {
-    const url = tabs[activeInfo.tabId];
-    if (!url) return;
-    await setBadge({url: url.toString(), id: activeInfo.tabId});
+const onTabActivated = () => {
+    getCurrentTab().then(setBadge);
 };
 
 const cleanCookiesCheckOpenTabs = () => {
