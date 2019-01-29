@@ -66,9 +66,17 @@ const domainToRule = d => "^" + d.replace(".", "\\.") + "$";
 // eslint-disable-next-line no-unused-vars
 const saveWhitelist = (rules) => {
     rules.sort((r1, r2) => {
-        const bd1 = baseDomain(cleanRule(r1));
-        const bd2 = baseDomain(cleanRule(r2));
-        return bd1.localeCompare(bd2);
+        const cr1 = cleanRule(r1);
+        const cr2 = cleanRule(r2);
+        const bd1 = baseDomain(cr1);
+        const bd2 = baseDomain(cr2);
+        if (bd1 === bd2) {
+            const prefix1 = cr1.replace(bd1, "");
+            const prefix2 = cr2.replace(bd1, "");
+            return prefix1.localeCompare(prefix2);
+        } else {
+            return bd1.localeCompare(bd2);
+        }
     });
     chrome.runtime.sendMessage({
         "action": "update_whitelist",
