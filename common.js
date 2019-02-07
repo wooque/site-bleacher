@@ -1,5 +1,10 @@
+const isFirefox = navigator.userAgent.toLowerCase().indexOf("firefox") > -1;
+
 // eslint-disable-next-line no-unused-vars
 const getCookies = (details) => new Promise(resolve => {
+    if (isFirefox) {
+        details.firstPartyDomain = null;
+    }
     chrome.cookies.getAll(
         details,
         (cookies) => resolve(cookies)

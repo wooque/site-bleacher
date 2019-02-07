@@ -90,10 +90,14 @@ const cleanCookiesWithDetails = async (details, checkIgnore) => {
         } else {
             url = `http://${fullDomain}${cookie.path}`;
         }
-        chrome.cookies.remove({
+        const removeData = {
             url: url,
             name: cookie.name,
-        });
+        };
+        if (isFirefox) {
+            removeData.firstPartyDomain = cookie.firstPartyDomain;
+        }
+        chrome.cookies.remove(removeData);
     }
 };
 

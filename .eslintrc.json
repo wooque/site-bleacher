@@ -35,6 +35,7 @@
         ]
     },
     "globals": {
+        "isFirefox": true,
         "getCookies": true,
         "getCurrentTab": true,
         "cookieDomain": true,
