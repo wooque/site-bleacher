@@ -1,16 +1,7 @@
 let whitelist;
-let background;
 
 byId("whitelistTab").onclick = () => {
-    getCurrentTab().then(tab => {
-        if (tab.id in background.whitelistTabs) {
-            delete background.whitelistTabs[tab.id];
-        } else {
-            const domain = baseDomain(getDomain(tab.url));
-            background.whitelistTabs[tab.id] = new Set([domain]);
-        }
-        render();
-    });
+    chrome.runtime.sendMessage({"action": "whitelist_tab"});
 };
 
 byId("clean").onclick = () => {
@@ -46,7 +37,6 @@ const render = async () => {
     if (!tab || !isWebPage(tab.url)) return;
     if (tab.incognito) return;
 
-    background = await getBackgroundPage();
     const cookies = await getCookiesForUrl(tab.url);
 
     if (!whitelist) {
@@ -88,6 +78,8 @@ const render = async () => {
         tr.appendChild(btd);
         table.appendChild(tr);
     }
+    const background = await getBackgroundPage();
+    
     byId("settings").style.marginTop = "5px";
     byId("clean").style.display = "block";
     byId("whitelistTab").checked = tab.id in background.whitelistTabs;

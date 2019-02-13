@@ -155,6 +155,17 @@ const onMessage = (message, sender, _sendResponse) => {
     case "update_badge":
         getCurrentTab().then(setBadge);
         break;
+
+    case "whitelist_tab":
+        getCurrentTab().then(tab => {
+            if (tab.id in window.whitelistTabs) {
+                delete window.whitelistTabs[tab.id];
+            } else {
+                const domain = baseDomain(getDomain(tab.url));
+                window.whitelistTabs[tab.id] = new Set([domain]);
+            }
+        });
+        break;
     }
 };
 
