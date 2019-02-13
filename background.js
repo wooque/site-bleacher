@@ -3,6 +3,7 @@ let whitelistDomains = new Set();
 let tabs = {};
 let domains = {};
 let indexeddbs = {};
+window.whitelistTabs = {};
 
 const initGlobals = () => {
     chrome.tabs.query({}, (ts) => {
@@ -157,7 +158,12 @@ const onMessage = (message, sender, _sendResponse) => {
     }
 };
 
-const onTabClose = async (tabId, _removeInfo) => {
+const onTabClose = async (tabId, removeInfo) => {
+    if (removeInfo !== undefined) {
+        if (tabId in window.whitelistTabs) {
+            delete window.whitelistTabs[tabId];
+        }
+    }
     const url = tabs[tabId];
     if (!url || !isWebPage(url)) return;
 
@@ -168,7 +174,11 @@ const onTabClose = async (tabId, _removeInfo) => {
         domains[oldDomain]--;
         if (domains[oldDomain] === 0) {
             delete domains[oldDomain];
-            await cleanCookies(url.toString());
+            if (!(tabId in window.whitelistTabs)) {
+                await cleanCookies(url.toString());
+            } else {
+                window.whitelistTabs[tabId].add(baseDomain(oldDomain));
+            }
         }
     }
 };
@@ -273,6 +283,11 @@ const onTabActivated = () => {
 const cleanCookiesCheckOpenTabs = () => {
     chrome.tabs.query({}, (ts) => {
         const ds = new Set(ts.map((t) => baseDomain(getDomain(t.url))));
+        for (let s of Object.values(window.whitelistTabs)) {
+            for (let e of s) {
+                ds.add(e);
+            }
+        }
         cleanCookiesWithDetails({}, (domain) => ds.has(baseDomain(domain)));
     });
 };

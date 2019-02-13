@@ -23,6 +23,9 @@
         height: 32px;
         width: 100%;
       }
+      #whitelistTabCont {
+        display: none;
+      }
       #clean {
         margin-top: 5px;
         display: none;
@@ -44,12 +47,70 @@
       .whitelist {
         background: #FF6464;
       }
+      .switch {
+        position: relative;
+        width: 28px;
+        height: 16px;
+        float: left;
+        margin: 5px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        -webkit-transition: .4s;
+        transition: .4s;
+        border-radius: 34px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 12px;
+        width: 12px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        -webkit-transition: .4s;
+        transition: .4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: #96C864;
+      }
+      input:focus + .slider {
+        box-shadow: 0 0 1px #96C864;
+      }
+      input:checked + .slider:before {
+        -webkit-transform: translateX(12px);
+        -ms-transform: translateX(12px);
+        transform: translateX(12px);
+      }
+      .switchDesc {
+        float: left;
+        margin: 5px;
+      }
     </style>
   </head>
   <body>
     <table id="cookies"></table>
-    <button class="control" id="settings">Settings</button>
+    <div id="whitelistTabCont">
+      <label class="switch">
+        <input type="checkbox" id="whitelistTab">
+        <span class="slider"></span>
+      </label>
+      <div class="switchDesc">whitelist tab until close</div>
+    </div>
     <button class="control" id="clean">Clean</button>
+    <button class="control" id="settings">Settings</button>
     <script src="common.js"></script>
     <script src="popup.js"></script>
   </body>

@@ -1,4 +1,17 @@
 let whitelist;
+let background;
+
+byId("whitelistTab").onclick = () => {
+    getCurrentTab().then(tab => {
+        if (tab.id in background.whitelistTabs) {
+            delete background.whitelistTabs[tab.id];
+        } else {
+            const domain = baseDomain(getDomain(tab.url));
+            background.whitelistTabs[tab.id] = new Set([domain]);
+        }
+        render();
+    });
+};
 
 byId("clean").onclick = () => {
     chrome.runtime.sendMessage({"action": "clean"});
@@ -20,11 +33,20 @@ const toogleWhitelist = (domain) => {
     render();
 };
 
+const getBackgroundPage = async () => {
+    return new Promise(resolve => {
+        chrome.runtime.getBackgroundPage(resp => {
+            resolve(resp);
+        });
+    });
+};
+
 const render = async () => {
     const tab = await getCurrentTab();
     if (!tab || !isWebPage(tab.url)) return;
     if (tab.incognito) return;
 
+    background = await getBackgroundPage();
     const cookies = await getCookiesForUrl(tab.url);
 
     if (!whitelist) {
@@ -68,6 +90,9 @@ const render = async () => {
     }
     byId("settings").style.marginTop = "5px";
     byId("clean").style.display = "block";
+    byId("whitelistTab").checked = tab.id in background.whitelistTabs;
+    byId("whitelistTabCont").style.display = "block";
+    document.body.style = "min-width: 220px";
 };
 
 render();
