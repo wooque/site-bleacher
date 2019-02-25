@@ -79,12 +79,12 @@ const render = async () => {
         table.appendChild(tr);
     }
     const background = await getBackgroundPage();
-    
+
     byId("settings").style.marginTop = "5px";
     byId("clean").style.display = "block";
     byId("whitelistTab").checked = tab.id in background.whitelistTabs;
     byId("whitelistTabCont").style.display = "block";
-    document.body.style = "min-width: 220px";
+    document.body.style = "min-width: 150px";
 };
 
 render();
