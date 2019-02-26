@@ -134,6 +134,10 @@ const clean = async () => {
 const onMessage = (message, sender, _sendResponse) => {
 
     switch(message.action) {
+    case "open_options":
+        chrome.tabs.create({url: "options.html"});
+        break;
+
     case "clean":
         clean();
         break;
