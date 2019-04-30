@@ -9,7 +9,7 @@ byId("clean").onclick = () => {
 };
 
 byId("settings").onclick = () => {
-    chrome.runtime.sendMessage({"action": "open_options"})
+    chrome.runtime.sendMessage({"action": "open_options"});
     window.close();
 };
 

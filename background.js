@@ -131,7 +131,7 @@ const clean = async () => {
     }
 };
 
-const onMessage = (message, sender, _sendResponse) => {
+const onMessage = (message, sender) => {
 
     switch(message.action) {
     case "open_options":
@@ -278,7 +278,7 @@ const onTabCreate = async (tab) => {
     await setBadge(tab);
 };
 
-const onTabChange = async (tabId, _changeInfo, tab) => {
+const onTabChange = async (tabId, changeInfo, tab) => {
     const oldUrl = tabs[tabId];
     if (oldUrl && baseDomain(oldUrl.host) === baseDomain(getDomain(tab.url))) {
         await setBadge(tab);

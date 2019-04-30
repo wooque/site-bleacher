@@ -26,13 +26,7 @@
             "always"
         ],
         "no-console": "warn",
-        "no-debugger": "warn",
-        "no-unused-vars": [
-            "warn",
-            {
-                "argsIgnorePattern": "^_"
-            }
-        ]
+        "no-debugger": "warn"
     },
     "globals": {
         "isFirefox": true,
