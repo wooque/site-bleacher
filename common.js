@@ -55,9 +55,9 @@ const isWebPage = (url) => {
 
 // eslint-disable-next-line no-unused-vars
 const getCookiesForUrl = async (url) => {
-    const cookies = await getCookies({url: url});
+    const cookies = await getCookies({ url: url });
     const base = baseDomain(getDomain(url));
-    const cookiesBase = await getCookies({domain: base});
+    const cookiesBase = await getCookies({ domain: base });
     return cookies.concat(cookiesBase);
 };
 
@@ -87,7 +87,7 @@ const saveWhitelist = (rules) => {
         "action": "update_whitelist",
         "whitelist": rules,
     });
-    chrome.storage.local.set({whitelist: rules});
+    chrome.storage.local.set({ whitelist: rules });
 };
 
 // eslint-disable-next-line no-unused-vars

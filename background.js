@@ -2,12 +2,11 @@ let whitelist = {};
 let whitelistDomains = new Set();
 let tabs = {};
 let domains = {};
-let indexeddbs = {};
 window.whitelistTabs = {};
 
 const initGlobals = () => {
     chrome.tabs.query({}, (ts) => {
-        for(let tab of ts) {
+        for (let tab of ts) {
             const url = parseUrl(tab.url);
             if (!isWebPage(url)) return;
 
@@ -21,22 +20,14 @@ const initGlobals = () => {
             }
         }
     });
-
-    chrome.storage.local.get(["indexeddbs"], (result) => {
-        indexeddbs = result.indexeddbs || {};
-    });
 };
 
-const deleteIndexedDBs = (domain) => {
-    delete indexeddbs[domain];
-    chrome.storage.local.set({
-        "indexeddbs": indexeddbs,
+const storageGet = (key) => {
+    return new Promise(resolve => {
+        chrome.storage.local.get([key], (result) => {
+            resolve(result[key]);
+        });
     });
-};
-
-const updateIndexedDBs = (domain, dbs) => {
-    indexeddbs[domain] = dbs;
-    chrome.storage.local.set({"indexeddbs": indexeddbs});
 };
 
 const checkWhitelist = (domain) => {
@@ -54,7 +45,7 @@ const checkWhitelist = (domain) => {
 const updateWhitelist = (wl) => {
     whitelistDomains = new Set(wl.map(r => cleanRule(r)));
     const newWhitelist = {};
-    for(let r of wl) {
+    for (let r of wl) {
         const bd = baseDomain(cleanRule(r));
         if (!(bd in newWhitelist)) {
             newWhitelist[bd] = [];
@@ -64,14 +55,75 @@ const updateWhitelist = (wl) => {
     whitelist = newWhitelist;
 };
 
-const loadWhitelist = () => {
-    chrome.storage.local.get(["whitelist"], (result) => {
-        if (!result.whitelist) return;
-        updateWhitelist(result.whitelist);
+const loadWhitelist = async () => {
+    const whitelist = await storageGet("whitelist");
+    if (whitelist) {
+        updateWhitelist(whitelist);
+    }
+};
+
+const getHistory = (startTime, endTime) => {
+    return new Promise(resolve => {
+        chrome.history.search(
+            {
+                text: "",
+                startTime: startTime,
+                endTime: endTime,
+                maxResults: 1000,
+            },
+            h => {
+                resolve(h);
+            }
+        );
     });
 };
 
-const cleanCookiesWithDetails = async (details, checkIgnore) => {
+const getHistoryOrigins = async () => {
+    let lastHistory = await storageGet("lastHistory");
+    lastHistory = lastHistory || 0;
+    let origins = new Set();
+    const start = Date.now();
+    let endTime = start;
+
+    while (endTime > lastHistory) {
+        const history = await getHistory(lastHistory, endTime);
+        for (let h of history) {
+            if (!isWebPage(h.url)) continue;
+            const url = new URL(h.url);
+            origins.add(url.origin);
+        }
+        if (!history.length || history.length < 1000) break;
+        endTime = history[history.length - 1].lastVisitTime;
+    }
+    chrome.storage.local.set({ "lastHistory": start });
+    return origins;
+};
+
+const cleanBrowsingData = async (origins, openTabDomains) => {
+    for (let o of origins) {
+        const domain = getDomain(o);
+
+        if (checkWhitelist(domain)) continue;
+        if (openTabDomains && openTabDomains.has(baseDomain(domain))) continue;
+
+        chrome.browsingData.remove(
+            {
+                "origins": [o],
+            },
+            {
+                "cacheStorage": true,
+                "fileSystems": true,
+                "indexedDB": true,
+                "localStorage": true,
+                "pluginData": true,
+                "serviceWorkers": true,
+                "webSQL": true
+            }
+        );
+    }
+};
+
+const cleanCookiesWithDetails = async (details, openTabDomains) => {
     const cookies = await getCookies(details);
     const whitelistCheckCache = {};
     for (let cookie of cookies) {
@@ -83,7 +135,7 @@ const cleanCookiesWithDetails = async (details, checkIgnore) => {
             whitelistCheckCache[domain] = isWhitelisted;
         }
         if (isWhitelisted) continue;
-        if (checkIgnore && checkIgnore(domain)) continue;
+        if (openTabDomains && openTabDomains.has(baseDomain(domain))) continue;
 
         let url;
         if (cookie.secure) {
@@ -102,24 +154,19 @@ const cleanCookiesWithDetails = async (details, checkIgnore) => {
     }
 };
 
+const periodicClean = async (openTabDomains) => {
+    const origins = await getHistoryOrigins();
+    cleanBrowsingData(origins, openTabDomains);
+    cleanCookiesWithDetails({}, openTabDomains);
+};
+
 const cleanCookies = async (url, checkIgnore) => {
-    await cleanCookiesWithDetails({url: url}, checkIgnore);
+    await cleanCookiesWithDetails({ url: url }, checkIgnore);
     const bd = baseDomain(getDomain(url));
-    await cleanCookiesWithDetails({domain: bd}, checkIgnore);
+    await cleanCookiesWithDetails({ domain: bd }, checkIgnore);
 };
 
-const sendCleanStorage = (tab) => {
-    const domain = getDomain(tab.url);
-    chrome.tabs.sendMessage(
-        tab.id,
-        {
-            "action": "clean_storage",
-            "data": indexeddbs[domain] || [],
-        }
-    );
-};
-
-const clean = async () => {
+const forceClean = async () => {
     const tab = await getCurrentTab();
     if (!tab) return;
     const url = parseUrl(tab.url);
@@ -127,33 +174,24 @@ const clean = async () => {
 
     if (!checkWhitelist(url.host)) {
         await cleanCookies(tab.url);
-        sendCleanStorage(tab);
+        const origin = new URL(tab.url).origin;
+        cleanBrowsingData([origin]);
     }
 };
 
-const onMessage = (message, sender) => {
-
-    switch(message.action) {
+const onMessage = (message) => {
+    switch (message.action) {
     case "open_options":
-        chrome.tabs.create({url: "options.html"});
+        chrome.tabs.create({ url: "options.html" });
         break;
 
     case "clean":
-        clean();
+        forceClean();
         break;
 
     case "update_whitelist":
         updateWhitelist(message.whitelist);
         getCurrentTab().then(setBadge);
-        break;
-
-    case "update_indexeddbs":
-        {
-            const domain = getDomain(sender.tab.url);
-            if (!checkWhitelist(domain)) {
-                updateIndexedDBs(domain, message.data);
-            }
-        }
         break;
 
     case "update_badge":
@@ -191,6 +229,8 @@ const onTabClose = async (tabId, removeInfo) => {
             delete domains[oldDomain];
             if (!(tabId in window.whitelistTabs)) {
                 await cleanCookies(url.toString());
+                const origin = new URL(url).origin;
+                cleanBrowsingData([origin]);
             } else {
                 window.whitelistTabs[tabId].add(baseDomain(oldDomain));
             }
@@ -270,11 +310,6 @@ const onTabCreate = async (tab) => {
     } else {
         domains[newDomain] = 1;
     }
-    const first = domains[newDomain] === 1;
-    if (first && !checkWhitelist(newDomain)) {
-        sendCleanStorage(tab);
-        deleteIndexedDBs(newDomain);
-    }
     await setBadge(tab);
 };
 
@@ -303,7 +338,7 @@ const cleanCookiesCheckOpenTabs = () => {
                 ds.add(e);
             }
         }
-        cleanCookiesWithDetails({}, (domain) => ds.has(baseDomain(domain)));
+        periodicClean(ds);
     });
 };
 
@@ -319,3 +354,5 @@ setInterval(() => cleanCookiesCheckOpenTabs(), 15000);
 setInterval(() => {
     getCurrentTab().then(setBadge);
 }, 15000);
+// TODO: remove in next version
+chrome.storage.local.remove(["indexeddbs"]);

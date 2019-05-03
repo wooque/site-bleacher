@@ -1,5 +1,5 @@
 # Site Bleacher
-Remove automatically cookies, local storage and IndexedDBs
+Remove automatically cookies, local storages, IndexedDBs, service workers, cache storages, filesystems and webSQLs
 
 ## Install
 * Clone the repo

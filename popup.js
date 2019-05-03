@@ -1,15 +1,15 @@
 let whitelist;
 
 byId("whitelistTab").onclick = () => {
-    chrome.runtime.sendMessage({"action": "whitelist_tab"});
+    chrome.runtime.sendMessage({ "action": "whitelist_tab" });
 };
 
 byId("clean").onclick = () => {
-    chrome.runtime.sendMessage({"action": "clean"});
+    chrome.runtime.sendMessage({ "action": "clean" });
 };
 
 byId("settings").onclick = () => {
-    chrome.runtime.sendMessage({"action": "open_options"});
+    chrome.runtime.sendMessage({ "action": "open_options" });
     window.close();
 };
 
@@ -56,7 +56,7 @@ const render = async () => {
     const table = byId("cookies");
     table.innerHTML = "";
     for (let domain of domains) {
-        const action = whitelist.includes(domain) ? "remove": "whitelist";
+        const action = whitelist.includes(domain) ? "remove" : "whitelist";
 
         const tr = document.createElement("tr");
 
@@ -88,4 +88,4 @@ const render = async () => {
 };
 
 render();
-chrome.runtime.sendMessage({"action": "update_badge"});
+chrome.runtime.sendMessage({ "action": "update_badge" });
