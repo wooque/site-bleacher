@@ -106,19 +106,31 @@ const cleanBrowsingData = async (origins, openTabDomains) => {
         if (checkWhitelist(domain)) continue;
         if (openTabDomains && openTabDomains.has(baseDomain(domain))) continue;
 
-        chrome.browsingData.remove(
-            {
+        let removalOptions = {};
+        let removeData = {
+            "indexedDB": true,
+            "localStorage": true,
+            "pluginData": true,
+            "serviceWorkers": true,
+        };
+        if (isFirefox) {
+            const url = new URL(o);
+            removalOptions = {
+                "hostnames": [url.hostname],
+            };
+        } else {
+            removalOptions = {
                 "origins": [o],
-            },
-            {
+            };
+            removeData = Object.assign(removeData, {
                 "cacheStorage": true,
                 "fileSystems": true,
-                "indexedDB": true,
-                "localStorage": true,
-                "pluginData": true,
-                "serviceWorkers": true,
                 "webSQL": true
-            }
+            });
+        }
+        chrome.browsingData.remove(
+            removalOptions,
+            removeData,
         );
     }
 };
