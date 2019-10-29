@@ -11,12 +11,14 @@
     "rules": {
         "indent": [
             "warn",
-            4
+            4,
+            { "SwitchCase": 1 }
         ],
         "linebreak-style": [
             "warn",
             "unix"
         ],
+        "max-len": ["warn", 100],
         "quotes": [
             "warn",
             "double"
@@ -26,7 +28,9 @@
             "always"
         ],
         "no-console": "warn",
-        "no-debugger": "warn"
+        "no-debugger": "warn",
+        "no-redeclare": "off",
+        "require-atomic-updates": "off"
     },
     "globals": {
         "isFirefox": true,

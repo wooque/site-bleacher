@@ -3,6 +3,7 @@ let whitelistDomains = new Set();
 let tabs = {};
 let domains = {};
 window.whitelistTabs = {};
+let stores = new Set();
 
 const initGlobals = () => {
     chrome.tabs.query({}, (ts) => {
@@ -10,7 +11,7 @@ const initGlobals = () => {
             const url = parseUrl(tab.url);
             if (!isWebPage(url)) return;
 
-            tabs[tab.id] = url;
+            tabs[tab.id] = { url: url, store: tab.cookieStoreId };
 
             const nd = normalizeDomain(url.host);
             if (nd in domains) {
@@ -26,6 +27,14 @@ const storageGet = (key) => {
     return new Promise(resolve => {
         chrome.storage.local.get([key], (result) => {
             resolve(result[key]);
+        });
+    });
+};
+
+const getCookieStores = () => {
+    return new Promise(resolve => {
+        chrome.cookies.getAllCookieStores(result => {
+            resolve(result);
         });
     });
 };
@@ -162,6 +171,7 @@ const cleanCookiesWithDetails = async (details, openTabDomains) => {
         if (isFirefox) {
             removeData.firstPartyDomain = cookie.firstPartyDomain;
         }
+        removeData.storeId = details.storeId;
         chrome.cookies.remove(removeData);
     }
 };
@@ -169,13 +179,15 @@ const cleanCookiesWithDetails = async (details, openTabDomains) => {
 const periodicClean = async (openTabDomains) => {
     const origins = await getHistoryOrigins();
     cleanBrowsingData(origins, openTabDomains);
-    cleanCookiesWithDetails({}, openTabDomains);
+    for (let store of stores) {
+        cleanCookiesWithDetails({ storeId: store }, openTabDomains);
+    }
 };
 
-const cleanCookies = async (url, checkIgnore) => {
-    await cleanCookiesWithDetails({ url: url }, checkIgnore);
+const cleanCookies = async (url, storeId, checkIgnore) => {
+    await cleanCookiesWithDetails({ url: url, storeId: storeId }, checkIgnore);
     const bd = baseDomain(getDomain(url));
-    await cleanCookiesWithDetails({ domain: bd }, checkIgnore);
+    await cleanCookiesWithDetails({ domain: bd, storeId: storeId }, checkIgnore);
 };
 
 const forceClean = async () => {
@@ -185,7 +197,7 @@ const forceClean = async () => {
     if (!isWebPage(url)) return;
 
     if (!checkWhitelist(url.host)) {
-        await cleanCookies(tab.url);
+        await cleanCookies(tab.url, tab.cookieStoreId);
         const origin = new URL(tab.url).origin;
         cleanBrowsingData([origin]);
     }
@@ -193,33 +205,33 @@ const forceClean = async () => {
 
 const onMessage = (message) => {
     switch (message.action) {
-    case "open_options":
-        chrome.tabs.create({ url: "options.html" });
-        break;
+        case "open_options":
+            chrome.tabs.create({ url: "options.html" });
+            break;
 
-    case "clean":
-        forceClean();
-        break;
+        case "clean":
+            forceClean();
+            break;
 
-    case "update_whitelist":
-        updateWhitelist(message.whitelist);
-        getCurrentTab().then(setBadge);
-        break;
+        case "update_whitelist":
+            updateWhitelist(message.whitelist);
+            getCurrentTab().then(setBadge);
+            break;
 
-    case "update_badge":
-        getCurrentTab().then(setBadge);
-        break;
+        case "update_badge":
+            getCurrentTab().then(setBadge);
+            break;
 
-    case "whitelist_tab":
-        getCurrentTab().then(tab => {
-            if (tab.id in window.whitelistTabs) {
-                delete window.whitelistTabs[tab.id];
-            } else {
-                const domain = baseDomain(getDomain(tab.url));
-                window.whitelistTabs[tab.id] = new Set([domain]);
-            }
-        });
-        break;
+        case "whitelist_tab":
+            getCurrentTab().then(tab => {
+                if (tab.id in window.whitelistTabs) {
+                    delete window.whitelistTabs[tab.id];
+                } else {
+                    const domain = baseDomain(getDomain(tab.url));
+                    window.whitelistTabs[tab.id] = new Set([domain]);
+                }
+            });
+            break;
     }
 };
 
@@ -229,18 +241,19 @@ const onTabClose = async (tabId, removeInfo) => {
             delete window.whitelistTabs[tabId];
         }
     }
-    const url = tabs[tabId];
-    if (!url || !isWebPage(url)) return;
+    const tabData = tabs[tabId];
+    if (!tabData || !isWebPage(tabData.url)) return;
 
     delete tabs[tabId];
 
+    const url = tabData.url;
     const oldDomain = normalizeDomain(url.host);
     if (oldDomain in domains) {
         domains[oldDomain]--;
         if (domains[oldDomain] === 0) {
             delete domains[oldDomain];
             if (!(tabId in window.whitelistTabs)) {
-                await cleanCookies(url.toString());
+                await cleanCookies(url.toString(), tabData.store);
                 const origin = new URL(url).origin;
                 cleanBrowsingData([origin]);
             } else {
@@ -306,16 +319,21 @@ const cleanBadge = (tabId) => {
 };
 
 const onTabCreate = async (tab) => {
+    const cs = await getCookieStores();
+    for (let s of cs) {
+        if (s.incognito) continue;
+        stores.add(s.id);
+    }
     if (!tab.url) return;
     const url = parseUrl(tab.url);
     if (!isWebPage(url)) return;
 
     const newDomain = normalizeDomain(url.host);
     if (tab.id in tabs) {
-        const oldDomain = normalizeDomain(tabs[tab.id].host);
+        const oldDomain = normalizeDomain(tabs[tab.id].url.host);
         if (oldDomain === newDomain) return;
     }
-    tabs[tab.id] = url;
+    tabs[tab.id] = { url: url, store: tab.cookieStoreId };
 
     if (newDomain in domains) {
         domains[newDomain]++;
@@ -326,8 +344,11 @@ const onTabCreate = async (tab) => {
 };
 
 const onTabChange = async (tabId, changeInfo, tab) => {
-    const oldUrl = tabs[tabId];
-    if (oldUrl && baseDomain(oldUrl.host) === baseDomain(getDomain(tab.url))) {
+    if (Object.keys(changeInfo).length === 1 && changeInfo.attention !== undefined) {
+        return;
+    }
+    const oldTabData = tabs[tabId];
+    if (oldTabData && baseDomain(oldTabData.url.host) === baseDomain(getDomain(tab.url))) {
         await setBadge(tab);
         return;
     }
