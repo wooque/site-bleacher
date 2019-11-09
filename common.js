@@ -1,3 +1,12 @@
+// eslint-disable-next-line no-unused-vars
+const copyFields = (obj, fields) => {
+    const ret = {};
+    for (let f of fields) {
+        ret[f] = obj[f];
+    }
+    return ret;
+};
+
 const isFirefox = navigator.userAgent.toLowerCase().indexOf("firefox") > -1;
 
 // eslint-disable-next-line no-unused-vars

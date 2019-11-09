@@ -5,11 +5,13 @@ let domains = {};
 window.whitelistTabs = {};
 let stores = new Set();
 
+const debug = false;
+
 const initGlobals = () => {
     chrome.tabs.query({}, (ts) => {
         for (let tab of ts) {
             const url = parseUrl(tab.url);
-            if (!isWebPage(url)) return;
+            if (!isWebPage(url)) continue;
 
             tabs[tab.id] = { url: url, store: tab.cookieStoreId };
 
@@ -108,12 +110,12 @@ const getHistoryOrigins = async () => {
     return origins;
 };
 
-const cleanBrowsingData = async (origins, openTabDomains) => {
+const cleanBrowsingData = async (origins, ignore) => {
     for (let o of origins) {
         const domain = getDomain(o);
 
         if (checkWhitelist(domain)) continue;
-        if (openTabDomains && openTabDomains.has(baseDomain(domain))) continue;
+        if (ignore && ignore.has(baseDomain(domain))) continue;
 
         let removalOptions = {};
         let removeData = {
@@ -137,6 +139,9 @@ const cleanBrowsingData = async (origins, openTabDomains) => {
                 "webSQL": true
             });
         }
+        if (debug) {
+            console.log({ removalOptions, removeData });
+        }
         chrome.browsingData.remove(
             removalOptions,
             removeData,
@@ -144,19 +149,30 @@ const cleanBrowsingData = async (origins, openTabDomains) => {
     }
 };
 
-const cleanCookiesWithDetails = async (details, openTabDomains) => {
-    const cookies = await getCookies(details);
+const cleanCookiesWithDetails = async (options) => {
+    const cookieDetails = copyFields(options, ["url", "domain", "storeId"]);
+    const cookies = await getCookies(cookieDetails);
     const whitelistCheckCache = {};
+    let urlBaseDom;
+    if (options.url) {
+        urlBaseDom = baseDomain(getDomain(options.url));
+    }
+    if (options.domain) {
+        urlBaseDom = baseDomain(options.domain);
+    }
     for (let cookie of cookies) {
         const fullDomain = cookieDomain(cookie);
         const domain = normalizeDomain(fullDomain);
+        if (!options.cleanBaseDomain && domain === urlBaseDom) continue;
+
         let isWhitelisted = whitelistCheckCache[domain];
         if (isWhitelisted === undefined) {
             isWhitelisted = checkWhitelist(domain);
             whitelistCheckCache[domain] = isWhitelisted;
         }
         if (isWhitelisted) continue;
-        if (openTabDomains && openTabDomains.has(baseDomain(domain))) continue;
+        if (options.ignore
+            && options.ignore.has(baseDomain(domain))) continue;
 
         let url;
         if (cookie.secure) {
@@ -171,23 +187,33 @@ const cleanCookiesWithDetails = async (details, openTabDomains) => {
         if (isFirefox) {
             removeData.firstPartyDomain = cookie.firstPartyDomain;
         }
-        removeData.storeId = details.storeId;
+        removeData.storeId = cookieDetails.storeId;
+        if (debug) {
+            console.log(removeData);
+        }
         chrome.cookies.remove(removeData);
+        cleanBrowsingData([new URL(url).origin]);
     }
 };
 
-const periodicClean = async (openTabDomains) => {
+const periodicClean = async (ignore) => {
     const origins = await getHistoryOrigins();
-    cleanBrowsingData(origins, openTabDomains);
-    for (let store of stores) {
-        cleanCookiesWithDetails({ storeId: store }, openTabDomains);
+    cleanBrowsingData(origins, ignore);
+    for (let storeId of stores) {
+        cleanCookiesWithDetails({ storeId, ignore });
     }
 };
 
-const cleanCookies = async (url, storeId, checkIgnore) => {
-    await cleanCookiesWithDetails({ url: url, storeId: storeId }, checkIgnore);
-    const bd = baseDomain(getDomain(url));
-    await cleanCookiesWithDetails({ domain: bd, storeId: storeId }, checkIgnore);
+const cleanCookies = async (options) => {
+    await cleanCookiesWithDetails(options);
+    const bd = baseDomain(getDomain(options.url));
+    if (options.cleanBaseDomain) {
+        await cleanCookiesWithDetails({
+            domain: bd,
+            storeId: options.storeId,
+            ignore: options.ignore,
+        });
+    }
 };
 
 const forceClean = async () => {
@@ -197,7 +223,10 @@ const forceClean = async () => {
     if (!isWebPage(url)) return;
 
     if (!checkWhitelist(url.host)) {
-        await cleanCookies(tab.url, tab.cookieStoreId);
+        await cleanCookies({
+            url: tab.url,
+            storeId: tab.cookieStoreId,
+        });
         const origin = new URL(tab.url).origin;
         cleanBrowsingData([origin]);
     }
@@ -250,10 +279,25 @@ const onTabClose = async (tabId, removeInfo) => {
     const oldDomain = normalizeDomain(url.host);
     if (oldDomain in domains) {
         domains[oldDomain]--;
+
         if (domains[oldDomain] === 0) {
             delete domains[oldDomain];
+
             if (!(tabId in window.whitelistTabs)) {
-                await cleanCookies(url.toString(), tabData.store);
+                const isBase = oldDomain === baseDomain(oldDomain);
+                let cleanBase = true;
+                for (let otherDomain in domains) {
+                    if (baseDomain(otherDomain) === baseDomain(oldDomain)) {
+                        if (isBase) return;
+                        cleanBase = false;
+                        break;
+                    }
+                }
+                await cleanCookies({
+                    url: url.toString(),
+                    storeId: tabData.store,
+                    cleanBaseDomain: cleanBase,
+                });
                 const origin = new URL(url).origin;
                 cleanBrowsingData([origin]);
             } else {

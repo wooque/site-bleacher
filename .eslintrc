@@ -27,12 +27,12 @@
             "warn",
             "always"
         ],
-        "no-console": "warn",
         "no-debugger": "warn",
         "no-redeclare": "off",
         "require-atomic-updates": "off"
     },
     "globals": {
+        "copyFields": true,
         "isFirefox": true,
         "getCookies": true,
         "getCurrentTab": true,
